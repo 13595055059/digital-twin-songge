@@ -1,0 +1,13 @@
+{
+  "name": "digital-twin-songge",
+  "version": "1.0.0",
+  "description": "松哥数字分身 - AI思维伙伴与决策辅助系统",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "openai": "^4.67.0"
+  }
+}
