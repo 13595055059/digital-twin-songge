@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f0f1a">
+    <title>松哥数字分身</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent: #f093fb;
+            --bg: #0f0f1a;
+            --bg-card: rgba(255,255,255,0.04);
+            --bg-card-hover: rgba(255,255,255,0.08);
+            --border: rgba(255,255,255,0.08);
+            --text: #e8e8e8;
+            --text-dim: rgba(255,255,255,0.5);
+            --danger: #ff6b6b;
+            --success: #51cf66;
+            --warning: #ffd43b;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: rgba(15,15,26,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .header-avatar {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .header-info h1 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .header-info p {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .header-status {
+            margin-left: auto;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /* ===== Tabs ===== */
+        .tabs {
+            display: flex;
+            background: rgba(15,15,26,0.6);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 8px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab.active {
+            color: #fff;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 20%; right: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 1px;
+        }
+
+        .tab-icon {
+            display: block;
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+
+        /* ===== Content ===== */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .page { display: none; height: 100%; }
+        .page.active { display: flex; flex-direction: column; animation: fadeIn 0.25s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ===== Profile Page ===== */
+        .profile-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 14px;
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .value-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+
+        .value-row:active { background: var(--bg-card-hover); }
+
+        .value-icon { font-size: 22px; margin-right: 12px; flex-shrink: 0; }
+        .value-label { font-size: 14px; font-weight: 600; }
+        .value-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+        .info-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .info-row:last-child { border-bottom: none; }
+        .info-key { color: var(--text-dim); width: 80px; flex-shrink: 0; }
+        .info-val { flex: 1; }
+
+        /* ===== Blindspot Page ===== */
+        .bs-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .bs-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--danger);
+        }
+
+        .bs-num {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 6px;
+        }
+
+        .bs-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .bs-desc {
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .bs-tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            background: rgba(255,107,107,0.15);
+            color: var(--danger);
+        }
+
+        /* ===== Chat Page ===== */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .msg { margin-bottom: 16px; display: flex; }
+        .msg.user { justify-content: flex-end; }
+        .msg.assistant { justify-content: flex-start; }
+
+        .msg-bubble {
+            max-width: 82%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.65;
+            word-break: break-word;
+        }
+
+        .msg.user .msg-bubble {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.assistant .msg-bubble {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-time {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            padding: 0 4px;
+        }
+
+        .msg.user .msg-time { text-align: right; }
+
+        .typing {
+            display: none;
+            padding: 0 16px 8px;
+        }
+
+        .typing-dots span {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            margin-right: 4px;
+            animation: bounce 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .chat-input-bar {
+            padding: 12px 16px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            background: rgba(15,15,26,0.9);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-row input {
+            flex: 1;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .chat-input-row input::placeholder { color: var(--text-dim); }
+
+        .btn-send {
+            width: 48px; height: 48px;
+            border-radius: 24px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .btn-send:disabled {
+            opacity: 0.5;
+        }
+
+        /* ===== Settings Page ===== */
+        .settings-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .settings-group {
+            margin-bottom: 16px;
+        }
+
+        .settings-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .settings-group input,
+        .settings-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-card);
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .settings-group input:focus,
+        .settings-group select:focus {
+            border-color: var(--primary);
+        }
+
+        .settings-group select option { background: var(--bg); }
+
+        .btn-action {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn-action:active { opacity: 0.8; }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .settings-hint {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        /* ===== Welcome ===== */
+        .welcome {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .welcome-icon { font-size: 48px; margin-bottom: 16px; }
+        .welcome h2 { font-size: 20px; margin-bottom: 8px; }
+        .welcome p { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        /* ===== Markdown in chat ===== */
+        .msg-bubble strong { color: var(--primary); }
+        .msg-bubble code { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-avatar">🧠</div>
+        <div class="header-info">
+            <h1>松哥数字分身</h1>
+            <p>思维伙伴 · 决策辅助 · 盲点检测</p>
+        </div>
+        <div class="header-status" id="statusDot"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="chat">
+            <span class="tab-icon">💬</span>对话
+        </button>
+        <button class="tab" data-tab="profile">
+            <span class="tab-icon">📋</span>档案
+        </button>
+        <button class="tab" data-tab="blindspots">
+            <span class="tab-icon">⚠️</span>盲点
+        </button>
+        <button class="tab" data-tab="settings">
+            <span class="tab-icon">⚙️</span>设置
+        </button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+        <!-- Chat Page -->
+        <div id="page-chat" class="page active">
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome" id="chatWelcome">
+                    <div class="welcome-icon">👋</div>
+                    <h2>松哥，你好！</h2>
+                    <p>我是你的数字分身，已学习你的核心价值观、决策风格和7个思维盲点。<br>有什么想讨论的，随时告诉我。</p>
+                </div>
+            </div>
+            <div class="typing" id="typingIndicator">
+                <div class="typing-dots"><span></span><span></span><span></span></div>
+            </div>
+            <div class="chat-input-bar">
+                <div class="chat-input-row">
+                    <input type="text" id="chatInput" placeholder="输入你的问题或想法..." autocomplete="off">
+                    <button class="btn-send" id="btnSend" onclick="handleSend()">➤</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="page-profile" class="page">
+            <div class="profile-scroll">
+
+                <div class="card">
+                    <div class="card-title">🎯 核心价值观</div>
+                    <div class="value-row">
+                        <div class="value-icon">🎯</div>
+                        <div><div class="value-label">自律</div><div class="value-desc">时间管理、习惯养成、情绪稳定</div></div>
+                    </div>
+                    <div class="value-row">
+                        <div class="value-icon">⚡</div>
+                        <div><div class="value-label">效率</div><div class="value-desc">系统化工作、方向明确后快速行动</div></div>
+                    </div>
+                    <div class="value-row">
+                        <div class="value-icon">👨‍👩‍👧‍👦</div>
+                        <div><div class="value-label">家庭</div><div class="value-desc">重要生活支柱</div></div>
+                    </div>
+                    <div class="value-row">
+                        <div class="value-icon">🔬</div>
+                        <div><div class="value-label">真理</div><div class="value-desc">数据事实、逻辑推演、专业验证</div></div>
+                    </div>
+                    <div class="value-row">
+                        <div class="value-icon">💎</div>
+                        <div><div class="value-label">完美</div><div class="value-desc">极致细节+系统优化+结果超预期</div></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🧠 决策风格</div>
+                    <div class="info-row"><span class="info-key">类型</span><span class="info-val">分析型决策</span></div>
+                    <div class="info-row"><span class="info-key">流程</span><span class="info-val">明确方向→仔细分析→咨询专业人士→数据推演→风险评估→快速执行</span></div>
+                    <div class="info-row"><span class="info-key">风险</span><span class="info-val">评估后确认可控再执行</span></div>
+                    <div class="info-row"><span class="info-key">挑战</span><span class="info-val">提问引导式（不直接批评）</span></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">💼 工作方式</div>
+                    <div class="info-row"><span class="info-key">流程</span><span class="info-val">系统规划→分步推进→达成结果</span></div>
+                    <div class="info-row"><span class="info-key">偏好</span><span class="info-val">独立思考+专业验证</span></div>
+                    <div class="info-row"><span class="info-key">高效</span><span class="info-val">思想专注时</span></div>
+                    <div class="info-row"><span class="info-key">干扰</span><span class="info-val">情绪化事件、讨厌的人/事、计划外社交</span></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📚 学习风格</div>
+                    <div class="info-row"><span class="info-key">沟通</span><span class="info-val">文字+可视化</span></div>
+                    <div class="info-row"><span class="info-key">学习</span><span class="info-val">系统学习→问题导向深入研究</span></div>
+                    <div class="info-row"><span class="info-key">自律</span><span class="info-val">失效后快速反省，1-2天内纠正</span></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📊 决策案例</div>
+                    <div class="info-row"><span class="info-key">✅ 成功</span><span class="info-val">学习AI辅助建筑设计——系统认知后建立基准工作流，结果超预期</span></div>
+                    <div class="info-row"><span class="info-key">❌ 失败</span><span class="info-val">养牛投资(2022)——人选评估不足+执行监督缺失，投资亏损</span></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Blindspots Page -->
+        <div id="page-blindspots" class="page">
+            <div class="bs-scroll">
+
+                <div class="bs-card">
+                    <div class="bs-num">盲点 01</div>
+                    <div class="bs-title">完美主义陷阱</div>
+                    <div class="bs-desc">追求极致细节+系统优化，可能导致行动延迟。反复修改同一细节超过3次？进度被细节拖累？</div>
+                    <div class="bs-tag">自我检测</div>
+                </div>
+
+                <div class="bs-card">
+                    <div class="bs-num">盲点 02</div>
+                    <div class="bs-title">独立思考的代价</div>
+                    <div class="bs-desc">偏好独立思考，可能错过外部灵感。多久没主动寻求他人反馈了？</div>
+                    <div class="bs-tag">自我检测</div>
+                </div>
+
+                <div class="bs-card">
+                    <div class="bs-num">盲点 03</div>
+                    <div class="bs-title">计划刚性风险</div>
+                    <div class="bs-desc">系统规划后分步推进，但计划被打乱时恢复能力如何？是否会因偏离计划而焦虑？</div>
+                    <div class="bs-tag">需观察</div>
+                </div>
+
+                <div class="bs-card">
+                    <div class="bs-num">盲点 04</div>
+                    <div class="bs-title">情绪干扰决策</div>
+                    <div class="bs-desc">见到讨厌的人/事，情绪受影响，可能波及后续决策。情绪事件后应延迟重要决策。</div>
+                    <div class="bs-tag">自我检测</div>
+                </div>
+
+                <div class="bs-card" style="border-left-color: var(--warning);">
+                    <div class="bs-num" style="color: var(--warning);">盲点 05 · 来源于失败案例</div>
+                    <div class="bs-title">人选评估不足</div>
+                    <div class="bs-desc">养牛投资(2022)教训：没有考察好负责人的执行力和责任心。对人选是否做了充分的执行力评估？是否验证了对方的责任心？</div>
+                    <div class="bs-tag" style="background: rgba(255,212,59,0.15); color: var(--warning);">高风险</div>
+                </div>
+
+                <div class="bs-card" style="border-left-color: var(--warning);">
+                    <div class="bs-num" style="color: var(--warning);">盲点 06 · 来源于失败案例</div>
+                    <div class="bs-title">执行监督缺失</div>
+                    <div class="bs-desc">养牛投资(2022)教训：没有执行环节的监督管控。决策后是否有执行跟踪机制？关键节点是否有检查点？</div>
+                    <div class="bs-tag" style="background: rgba(255,212,59,0.15); color: var(--warning);">高风险</div>
+                </div>
+
+                <div class="bs-card" style="border-left-color: var(--warning);">
+                    <div class="bs-num" style="color: var(--warning);">盲点 07 · 来源于失败案例</div>
+                    <div class="bs-title">重决策、轻执行</div>
+                    <div class="bs-desc">养牛投资(2022)教训：花很多精力做决策分析，但执行阶段缺乏系统化管控。决策只是第一步，执行计划如何跟踪？</div>
+                    <div class="bs-tag" style="background: rgba(255,212,59,0.15); color: var(--warning);">高风险</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="page-settings" class="page">
+            <div class="settings-scroll">
+
+                <div class="card">
+                    <div class="card-title">🔑 API 配置</div>
+                    <div class="settings-group">
+                        <label>AI API 地址</label>
+                        <input type="text" id="apiBase" placeholder="https://api.openai.com/v1" value="">
+                        <div class="settings-hint">默认使用OpenAI官方地址。如使用其他兼容API（如Claude转发、国内代理），请填写完整地址。</div>
+                    </div>
+                    <div class="settings-group">
+                        <label>API 密钥</label>
+                        <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+                        <div class="settings-hint">密钥仅保存在你的浏览器本地，不会上传到任何服务器。</div>
+                    </div>
+                    <div class="settings-group">
+                        <label>模型</label>
+                        <select id="modelSelect">
+                            <option value="gpt-4o">GPT-4o（推荐）</option>
+                            <option value="gpt-4o-mini">GPT-4o-mini（经济）</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                        </select>
+                    </div>
+                    <button class="btn-action" onclick="saveSettings()">💾 保存配置</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📱 添加到手机桌面</div>
+                    <div class="info-row"><span class="info-key">iOS</span><span class="info-val">Safari打开→分享按钮→添加到主屏幕</span></div>
+                    <div class="info-row"><span class="info-key">Android</span><span class="info-val">Chrome打开→菜单→添加到主屏幕</span></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🗑️ 数据管理</div>
+                    <button class="btn-action btn-danger" onclick="clearChatHistory()">清空对话记录</button>
+                </div>
+
+                <div style="text-align:center; padding: 20px; opacity: 0.4; font-size: 12px;">
+                    松哥数字分身 v1.0<br>2025
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+    // ===== 状态管理 =====
+    const STATE = {
+        chatHistory: [],
+        settings: {
+            apiBase: '',
+            apiKey: '',
+            model: 'gpt-4o'
+        }
+    };
+
+    // 从localStorage恢复
+    function loadState() {
+        try {
+            const saved = localStorage.getItem('digitalTwinState');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                STATE.chatHistory = parsed.chatHistory || [];
+                STATE.settings = { ...STATE.settings, ...parsed.settings };
+            }
+        } catch(e) {}
+    }
+
+    function saveState() {
+        try {
+            localStorage.setItem('digitalTwinState', JSON.stringify(STATE));
+        } catch(e) {}
+    }
+
+    // ===== Tab 切换 =====
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('page-' + target).classList.add('active');
+        });
+    });
+
+    // ===== 聊天功能 =====
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const btnSend = document.getElementById('btnSend');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const chatWelcome = document.getElementById('chatWelcome');
+
+    // 系统提示词（内嵌，当API不可用时使用本地模式）
+    const LOCAL_SYSTEM_PROMPT = `你是松哥的数字分身。松哥的核心价值观：自律、效率、家庭、真理、完美。决策风格：分析型+专业验证+数据推演。已识别7个思维盲点。挑战方式：提问引导。称呼用户为"松哥"。`;
+
+    // 恢复聊天记录
+    function renderChatHistory() {
+        if (STATE.chatHistory.length > 0 && chatWelcome) {
+            chatWelcome.style.display = 'none';
+        }
+        STATE.chatHistory.forEach(msg => {
+            appendMessage(msg.role, msg.content, false);
+        });
+        scrollChat();
+    }
+
+    function appendMessage(role, content, save = true) {
+        if (chatWelcome && chatWelcome.style.display !== 'none') {
+            chatWelcome.style.display = 'none';
+        }
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg ${role}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+        bubble.textContent = content;
+
+        msgDiv.appendChild(bubble);
+
+        // 时间戳
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'msg-time';
+        timeDiv.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        msgDiv.appendChild(timeDiv);
+
+        chatMessages.appendChild(msgDiv);
+
+        if (save) {
+            STATE.chatHistory.push({ role, content });
+            saveState();
+        }
+
+        scrollChat();
+    }
+
+    function scrollChat() {
+        setTimeout(() => {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 50);
+    }
+
+    // 发送消息
+    async function handleSend() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        chatInput.value = '';
+        appendMessage('user', message);
+
+        // 显示打字指示器
+        typingIndicator.style.display = 'block';
+        btnSend.disabled = true;
+        scrollChat();
+
+        try {
+            const reply = await getAIReply(message);
+            typingIndicator.style.display = 'none';
+            btnSend.disabled = false;
+            appendMessage('assistant', reply);
+        } catch (error) {
+            typingIndicator.style.display = 'none';
+            btnSend.disabled = false;
+            appendMessage('assistant', '抱歉，出了点问题：' + error.message);
+        }
+    }
+
+    // 调用AI API
+    async function getAIReply(userMessage) {
+        const { apiBase, apiKey, model } = STATE.settings;
+
+        // 构建消息列表（最近20条）
+        const messages = [
+            { role: 'system', content: LOCAL_SYSTEM_PROMPT },
+            ...STATE.chatHistory.slice(-20)
+        ];
+
+        // 方案1: 如果有API配置，直接调用
+        if (apiKey) {
+            const base = apiBase || 'https://api.openai.com/v1';
+            const response = await fetch(`${base}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 2000
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.text();
+                throw new Error('API调用失败 (' + response.status + ')');
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        // 方案2: 尝试调用Vercel部署的后端API
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: userMessage,
+                    history: STATE.chatHistory.slice(-10)
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return data.reply;
+            }
+        } catch(e) {
+            // 后端API不可用，继续尝试本地
+        }
+
+        // 方案3: 本地简易回复（无AI时）
+        return generateLocalReply(userMessage);
+    }
+
+    // 本地简易回复（无AI API时的降级方案）
+    function generateLocalReply(message) {
+        const msg = message.toLowerCase();
+
+        if (msg.includes('决策') || msg.includes('决定') || msg.includes('选择')) {
+            return '松哥，这个决策你考虑了哪些关键因素？有没有可能陷入了完美主义陷阱——为了追求最优而延迟行动？另外，如果涉及人选，你验证过对方的执行力和责任心了吗？';
+        }
+
+        if (msg.includes('计划') || msg.includes('规划')) {
+            return '松哥，计划制定后，执行阶段的监督机制你想过吗？关键节点有没有设置检查点？这是从养牛投资案例中学到的教训。';
+        }
+
+        if (msg.includes('人') || msg.includes('合作') || msg.includes('负责')) {
+            return '松哥，关于人选问题，你对这个人的执行力和责任心做了哪些验证？有没有通过过往案例或口碑来确认？记得养牛投资的教训吗？';
+        }
+
+        if (msg.includes('焦虑') || msg.includes('烦') || msg.includes('情绪')) {
+            return '松哥，你现在情绪状态如何？如果刚经历了让你不舒服的事，建议先不要做重要决策。等情绪稳定后再分析，符合你的"情绪稳定"价值观。';
+        }
+
+        if (msg.includes('学习') || msg.includes('研究') || msg.includes('了解')) {
+            return '松哥，按照你的学习风格，建议先系统学习基础，然后问题导向深入研究。不过要提醒你：AI领域的经验告诉我们，根据需求合理应用比学完所有更高效。';
+        }
+
+        return '松哥，我收到了你的消息。目前我运行在本地模式（未配置AI API），回复能力有限。请在设置页面配置OpenAI API密钥，以获得完整的数字分身体验。';
+    }
+
+    // ===== 设置功能 =====
+    function loadSettings() {
+        const { apiBase, apiKey, model } = STATE.settings;
+        document.getElementById('apiBase').value = apiBase || '';
+        document.getElementById('apiKey').value = apiKey || '';
+        document.getElementById('modelSelect').value = model || 'gpt-4o';
+    }
+
+    function saveSettings() {
+        STATE.settings.apiBase = document.getElementById('apiBase').value.trim();
+        STATE.settings.apiKey = document.getElementById('apiKey').value.trim();
+        STATE.settings.model = document.getElementById('modelSelect').value;
+        saveState();
+
+        // 更新状态指示器
+        updateStatus();
+
+        alert('✅ 配置已保存！');
+    }
+
+    function updateStatus() {
+        const dot = document.getElementById('statusDot');
+        if (STATE.settings.apiKey) {
+            dot.style.background = 'var(--success)';
+            dot.style.boxShadow = '0 0 8px var(--success)';
+        } else {
+            dot.style.background = 'var(--warning)';
+            dot.style.boxShadow = '0 0 8px var(--warning)';
+        }
+    }
+
+    function clearChatHistory() {
+        if (confirm('确定要清空所有对话记录吗？')) {
+            STATE.chatHistory = [];
+            saveState();
+            chatMessages.innerHTML = '';
+            if (chatWelcome) {
+                chatMessages.appendChild(chatWelcome);
+                chatWelcome.style.display = '';
+            }
+            alert('✅ 对话记录已清空');
+        }
+    }
+
+    // 按回车发送
+    chatInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') handleSend();
+    });
+
+    // ===== 初始化 =====
+    loadState();
+    renderChatHistory();
+    loadSettings();
+    updateStatus();
+    </script>
+</body>
+</html>
